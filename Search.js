@@ -38,35 +38,37 @@ $.fn.Search = function (options) {
     var e=e||window.event,
         value=this.value,
         data={};
-    if (e.keyCode==40||e.keyCode==13) {
+    if (e.keyCode==40||e.keyCode==13||e.keyCode==38) {
       return;
     };
     data[opt.searchKeyName]=value;
-    if(value.length>3){
-      $.ajax({
-        type:opt.postType,
-        contentType: "test/html;charset=utf-8",
-        url:opt.url,
-        data:data,
-        dataType:opt.dataType,
-        success:function(res){
-          if(res instanceof String) res=JSON.parse(res);
-          if(res instanceof Object){
-            
-          }
-          _list(res);
-          opt.autoFocus && el.find('li.selected').length<=0 && _autoFocus();
+    var ajaxopt={
+      type:opt.postType,
+      url:opt.url,
+      data:data,
+      dataType:opt.dataType,
+      success:function(res){
+        if(typeof(res)=='string') res=JSON.parse(res);
+        if(res instanceof Object && opt.datafield){
+          res=res[opt.datafield];
         }
-      });
-    }else{
-      _list("至少输入四个字符！");
+        _list(res);
+        opt.autoFocus && el.find('li.selected').length<=0 && _autoFocus();
+      }
     };
+    if(opt.jsonpCallback) ajaxopt.jsonp=opt.jsonpCallback;
+    $.ajax(ajaxopt);
   }).on('keydown', '.input', function (e){
-    var e=e||window.event;
+    var e=e||window.event,fcus=el.find('li.selected');
     if (e.keyCode==40) {
-      var fcus=el.find('li.selected');
+      if(fcus.is(':last-child')) return;
       fcus.removeClass('selected').next().addClass('selected');
-      ipt.val(fcus.next().find('a')[0].id);
+      !opt.outputListValueIsurl&&ipt.val(fcus.next().find('a')[0].id);
+    };
+    if (e.keyCode==38) {
+      if(fcus.is(':first-child')) return;
+      fcus.removeClass('selected').prev().addClass('selected');
+      !opt.outputListValueIsurl&&ipt.val(fcus.prev().find('a')[0].id);
     };
     if (e.keyCode==13) {
       el.find('ul li.selected a').trigger('click');
@@ -89,7 +91,7 @@ $.fn.Search = function (options) {
       })
       $.each(data,function(index,item){
         var _attr=opt.outputListValueIsurl?'href':'id';
-        _c.push('<li><a ',_attr,'="',item.value,'">',item.label,'</a></li>');
+        _c.push('<li><a ',_attr,'="',item.value,'" target="_blank">',item.label,'</a></li>');
       });
     }else{
       _c.push('<li>',data,'</li>');
@@ -99,6 +101,8 @@ $.fn.Search = function (options) {
       if(!opt.outputListValueIsurl){
         ipt.val(this.id);
         el.find('ul').remove();
+      }else{
+        window.open(this.href);
       };
     });
   };
